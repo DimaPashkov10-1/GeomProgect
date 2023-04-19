@@ -37,6 +37,10 @@ public class Application implements Consumer<Event> {
      */
     public static final int C_RAD_IN_PX = 4;
     /**
+     * Представление проблемы
+     */
+    public static Task task;
+    /**
      * панель легенды
      */
     private final PanelHelp panelHelp;
