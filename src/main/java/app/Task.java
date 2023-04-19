@@ -8,6 +8,7 @@ import misc.CoordinateSystem2d;
 import misc.CoordinateSystem2i;
 import misc.Vector2d;
 import misc.Vector2i;
+import panels.PanelLog;
 
 import java.util.ArrayList;
 
@@ -37,9 +38,9 @@ public class Task {
      */
     private static final int POINT_SIZE = 3;
     /**
-     * последняя СК окна
+     * Последняя СК окна
      */
-    protected CoordinateSystem2i lastWindowCS;
+    private CoordinateSystem2i lastWindowCS;
 
     /**
      * Задача
@@ -61,6 +62,7 @@ public class Task {
     public void paint(Canvas canvas, CoordinateSystem2i windowCS) {
         // Сохраняем последнюю СК
         lastWindowCS = windowCS;
+
         canvas.save();
         // создаём перо
         try (var paint = new Paint()) {
@@ -76,6 +78,7 @@ public class Task {
         }
         canvas.restore();
     }
+
     /**
      * Добавить точку
      *
@@ -85,7 +88,10 @@ public class Task {
     public void addPoint(Vector2d pos, Point.PointSet pointSet) {
         Point newPoint = new Point(pos, pointSet);
         points.add(newPoint);
+        PanelLog.info("точка " + newPoint + " добавлена в " + newPoint.getSetName());
     }
+
+
     /**
      * Клик мыши по пространству задачи
      *
@@ -104,5 +110,6 @@ public class Task {
             addPoint(taskPos, Point.PointSet.SECOND_SET);
         }
     }
+
 
 }
