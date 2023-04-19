@@ -22,6 +22,7 @@ public class Colors {
      * Цвет текста
      */
     public static final int FIELD_TEXT_COLOR = Misc.getColor(255, 0, 0, 0);
+
     /**
      * Цвет текста заголовка
      */
@@ -30,6 +31,10 @@ public class Colors {
      * цвет подложки панелей
      */
     public static final int PANEL_BACKGROUND_COLOR = Misc.getColor(32, 0, 0, 0);
+    /**
+     * Цвет кнопки
+     */
+    public static final int BUTTON_COLOR = Misc.getColor(80, 0, 0, 0);
     /**
      * Запрещённый конструктор
      */
