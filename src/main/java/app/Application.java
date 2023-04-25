@@ -1,22 +1,21 @@
 package app;
 
 import controls.InputFactory;
-import controls.Label;
 import dialogs.PanelInfo;
+import dialogs.PanelSelectFile;
 import io.github.humbleui.jwm.*;
 import io.github.humbleui.jwm.skija.EventFrameSkija;
 import io.github.humbleui.skija.Canvas;
-import io.github.humbleui.skija.Paint;
-import io.github.humbleui.skija.RRect;
 import io.github.humbleui.skija.Surface;
 import misc.CoordinateSystem2i;
-import misc.Misc;
 import panels.PanelControl;
 import panels.PanelHelp;
 import panels.PanelLog;
 import panels.PanelRendering;
 
 import java.io.File;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.function.Consumer;
 
 import static app.Colors.*;
@@ -42,12 +41,13 @@ public class Application implements Consumer<Event> {
          */
         FILE
     }
+
     /**
      * окно приложения
      */
     private final Window window;
     /**
-     * отступы панелей
+     * отступ приложения
      */
     public static final int PANEL_PADDING = 5;
     /**
@@ -58,10 +58,7 @@ public class Application implements Consumer<Event> {
      * кнопка изменений: у мака - это `Command`, у windows - `Ctrl`
      */
     public static final KeyModifier MODIFIER = Platform.CURRENT == Platform.MACOS ? KeyModifier.MAC_COMMAND : KeyModifier.CONTROL;
-    /**
-     * Представление проблемы
-     */
-    public static Task task;
+
     /**
      * панель легенды
      */
@@ -79,6 +76,14 @@ public class Application implements Consumer<Event> {
      */
     private final PanelLog panelLog;
     /**
+     * время последнего нажатия клавиши мыши
+     */
+    Date prevEventMouseButtonTime;
+    /**
+     * флаг того, что окно развёрнуто на весь экран
+     */
+    private boolean maximizedWindow;
+    /**
      * Панель информации
      */
     private final PanelInfo panelInfo;
@@ -87,9 +92,9 @@ public class Application implements Consumer<Event> {
      */
     public static Mode currentMode = Mode.WORK;
     /**
-     * флаг того, что окно развёрнуто на весь экран
+     * Панель выбора файла
      */
-    private boolean maximizedWindow;
+    private final PanelSelectFile panelSelectFile;
 
     /**
      * Конструктор окна приложения
@@ -97,8 +102,13 @@ public class Application implements Consumer<Event> {
     public Application() {
         // создаём окно
         window = App.makeWindow();
+
         // панель информации
         panelInfo = new PanelInfo(window, true, DIALOG_BACKGROUND_COLOR, PANEL_PADDING);
+
+        // Панель выбора файла
+        panelSelectFile = new PanelSelectFile(window, true, DIALOG_BACKGROUND_COLOR, PANEL_PADDING);
+
         // создаём панель рисования
         panelRendering = new PanelRendering(
                 window, true, PANEL_BACKGROUND_COLOR, PANEL_PADDING, 5, 3, 0, 0,
@@ -130,7 +140,6 @@ public class Application implements Consumer<Event> {
         window.setWindowPosition(100, 100);
 
         // задаём иконку
-
         switch (Platform.CURRENT) {
             case WINDOWS -> window.setIcon(new File("src/main/resources/windows.ico"));
             case MACOS -> window.setIcon(new File("src/main/resources/macos.icns"));
@@ -168,21 +177,21 @@ public class Application implements Consumer<Event> {
      */
     @Override
     public void accept(Event e) {
-        // если событие - это закрытие окна
-        if (e instanceof EventWindowClose) {
-            // завершаем работу приложения
-            App.terminate();
-        } else if (e instanceof EventWindowCloseRequest) {
-            window.close();
-        } else if (e instanceof EventFrame) {
-            // запускаем рисование кадра
-            window.requestFrame();
-        } else if (e instanceof EventFrameSkija ee) {
-            // получаем поверхность рисования
-            Surface s = ee.getSurface();
-            // очищаем её канвас заданным цветом
-            paint(s.getCanvas(), new CoordinateSystem2i(s.getWidth(), s.getHeight()));
-        }// кнопки клавиатуры
+        // если событие кнопка мыши
+        if (e instanceof EventMouseButton) {
+            // получаем текущие дату и время
+            Date now = Calendar.getInstance().getTime();
+            // если уже было нажатие
+            if (prevEventMouseButtonTime != null) {
+                // если между ними прошло больше 200 мс
+                long delta = now.getTime() - prevEventMouseButtonTime.getTime();
+                if (delta < 200)
+                    return;
+            }
+            // сохраняем время последнего события
+            prevEventMouseButtonTime = now;
+        }
+        // кнопки клавиатуры
         else if (e instanceof EventKey eventKey) {
             // кнопка нажата с Ctrl
             if (eventKey.isPressed()) {
@@ -205,25 +214,45 @@ public class Application implements Consumer<Event> {
                 else
                     switch (eventKey.getKey()) {
                         case ESCAPE -> {
-                            // если сейчас основной режим
                             if (currentMode.equals(Mode.WORK)) {
-                                // закрываем окно
                                 window.close();
                                 // завершаем обработку, иначе уже разрушенный контекст
                                 // будет передан панелям
                                 return;
-                            } else if (currentMode.equals(Mode.INFO)) {
-                                currentMode = Mode.WORK;
                             }
                         }
                         case TAB -> InputFactory.nextTab();
                     }
             }
         }
-        panelControl.accept(e);
-        panelRendering.accept(e);
-        panelLog.accept(e);
+        // если событие - это закрытие окна
+        else if (e instanceof EventWindowClose) {
+            // завершаем работу приложения
+            App.terminate();
+            // закрытие окна
+        } else if (e instanceof EventWindowCloseRequest) {
+            window.close();
+        } else if (e instanceof EventFrameSkija ee) {
+            Surface s = ee.getSurface();
+            paint(s.getCanvas(), new CoordinateSystem2i(0, 0, s.getWidth(), s.getHeight())
+            );
+        } else if (e instanceof EventFrame) {
+            // запускаем рисование кадра
+            window.requestFrame();
+        }
+
+        switch (currentMode) {
+            case INFO -> panelInfo.accept(e);
+            case FILE -> panelSelectFile.accept(e);
+            case WORK -> {
+                // передаём события на обработку панелям
+                panelControl.accept(e);
+                panelRendering.accept(e);
+                panelLog.accept(e);
+            }
+        }
     }
+
     /**
      * Рисование
      *
@@ -240,17 +269,12 @@ public class Application implements Consumer<Event> {
         panelControl.paint(canvas, windowCS);
         panelLog.paint(canvas, windowCS);
         panelHelp.paint(canvas, windowCS);
+        canvas.restore();
+
         // рисуем диалоги
         switch (currentMode) {
-            case INFO -> panelInfo.accept(e);
-            case FILE -> panelSelectFile.accept(e);
-            case WORK -> {
-                // передаём события на обработку панелям
-                panelControl.accept(e);
-                panelRendering.accept(e);
-                panelLog.accept(e);
-            }
+            case INFO -> panelInfo.paint(canvas, windowCS);
+            case FILE -> panelSelectFile.paint(canvas, windowCS);
         }
-        canvas.restore();
     }
 }
