@@ -8,6 +8,7 @@ import io.github.humbleui.jwm.EventMouseButton;
 import io.github.humbleui.jwm.EventMouseScroll;
 import io.github.humbleui.jwm.Window;
 import io.github.humbleui.skija.Canvas;
+import io.github.humbleui.skija.impl.Stats;
 import misc.CoordinateSystem2d;
 import misc.CoordinateSystem2i;
 import misc.Vector2d;
@@ -28,6 +29,10 @@ public class PanelRendering extends GridPanel {
      * Представление проблемы
      */
     public static Task task;
+    /**
+     * Статистика fps
+     */
+    private final Stats fpsStats;
 
     /**
      * Панель управления
@@ -58,6 +63,7 @@ public class PanelRendering extends GridPanel {
         task = new Task(cs, new ArrayList<>());
         // добавляем в нё 10 случайных
         task.addRandomPoints(10);
+        fpsStats = new Stats();
     }
 
     /**
@@ -94,7 +100,11 @@ public class PanelRendering extends GridPanel {
      */
     @Override
     public void paintImpl(Canvas canvas, CoordinateSystem2i windowCS) {
+        // рисуем задачу
         task.paint(canvas, windowCS);
+        // рисуем статистику фпс
+        fpsStats.paint(canvas, windowCS, FONT12, padding);
+        // рисуем перекрестие, если мышь внутри области рисования этой панели
         if (lastInside && lastMove != null)
             task.paintMouse(canvas, windowCS, FONT12, lastWindowCS.getRelativePos(lastMove));
     }
