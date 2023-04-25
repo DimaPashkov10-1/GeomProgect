@@ -157,6 +157,11 @@ public class PanelControl extends GridPanel {
         solve.setOnClick(() -> {
             if (!PanelRendering.task.isSolved()) {
                 PanelRendering.task.solve();
+                String s = "Задача решена\n" +
+                        "Пересечений: " + PanelRendering.task.getCrossed().size() / 2 + "\n" +
+                        "Отдельных точек: " + PanelRendering.task.getSingle().size();
+
+                PanelLog.success(s);
                 solve.text = "Сбросить";
             } else {
                 cancelTask();
@@ -164,23 +169,6 @@ public class PanelControl extends GridPanel {
             window.requestFrame();
         });
         buttons.add(solve);
-        Button addToSecondSet = new Button(
-                window, false, backgroundColor, PANEL_PADDING,
-                6, 7, 3, 3, 3, 1, "Добавить во второе\nмножество",
-                true, true);
-        addToSecondSet.setOnClick(() -> {
-            // если числа введены верно
-            if (!xField.hasValidDoubleValue()) {
-                PanelLog.warning("X координата введена неверно");
-            } else if (!yField.hasValidDoubleValue())
-                PanelLog.warning("Y координата введена неверно");
-            else {
-                PanelRendering.task.addPoint(
-                        new Vector2d(xField.doubleValue(), yField.doubleValue()), Point.PointSet.SECOND_SET
-                );
-            }
-        });
-        buttons.add(addToSecondSet);
     }
 
     /**
